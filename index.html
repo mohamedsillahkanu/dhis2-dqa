@@ -160,7 +160,55 @@ body{background:#f1f3f5;font-family:'Oswald',Arial,sans-serif;color:#000;font-we
 .hidden{display:none!important;}
 .no-data{text-align:center;color:#888;font-style:italic;padding:30px;font-size:13px;}
 .nodata-banner{background:#f8f9fa;border:2px dashed #aaa;border-radius:8px;padding:18px;text-align:center;color:#777;font-size:13px;margin:12px 0;}
-@media(max-width:768px){body{padding:8px;}.content-inner{padding:14px;}}
+@media(max-width:768px){
+  body{padding:6px;}
+  .content-inner{padding:12px;}
+  .page-header{padding:14px 12px;}
+  .page-header h1{font-size:16px;}
+  .page-header .subtitle{font-size:11px;}
+  .logo-row{gap:10px;}
+  .status-bar{padding:12px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .nav-cards{grid-template-columns:1fr!important;}
+  .tab-bar{gap:3px;padding:6px;}
+  .tab-btn{padding:6px 10px;font-size:11px;}
+  .matrix-wrap{max-height:320px;}
+  .month-cards-grid{grid-template-columns:1fr!important;}
+  .fac-hdr{padding:12px;}
+  .fac-name{font-size:16px!important;}
+  .tbl-wrap{font-size:11px;}
+  .dqa-table th,.dqa-table td{padding:6px 8px;}
+  .btn{padding:7px 12px;font-size:11px;}
+  .btn-lg{padding:9px 14px;font-size:12px;}
+  .sec-hdr{padding:10px 12px;}
+  .sec-title{font-size:13px;}
+  .method-box{padding:12px;}
+  .content-card{margin-bottom:10px;}
+  .back-btn{padding:7px 12px;font-size:12px;}
+  select,input{font-size:16px!important;}
+}
+@media(max-width:480px){
+  body{padding:4px;}
+  .page-header h1{font-size:14px;letter-spacing:.3px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .nav-cards{grid-template-columns:1fr!important;}
+  .tab-bar{flex-direction:column;gap:3px;}
+  .tab-btn{width:100%;text-align:left;padding:8px 12px;font-size:12px;border-radius:6px;}
+  .tab-btn.active{border-left:4px solid #3b78a8;border-bottom:none;}
+  .matrix-wrap{max-height:260px;}
+  .month-cards-grid{grid-template-columns:1fr!important;}
+  .stats-grid[style*="grid-template-columns:repeat(5"]{grid-template-columns:repeat(2,1fr)!important;}
+  .stats-grid[style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr)!important;}
+  .stats-grid[style*="grid-template-columns:repeat(3"]{grid-template-columns:repeat(2,1fr)!important;}
+  .page-header .logo-row img{width:36px;}
+  .status-bar > div:first-child{flex-direction:column;gap:8px;}
+  .content-inner{padding:10px 8px;}
+}
+@media(pointer:coarse){
+  .btn,.tab-btn,.back-btn,.nav-card{min-height:44px;}
+  select,input{min-height:44px;}
+  .tab-btn{min-height:40px;}
+}
 
 /* ── Dashboard / widget embed mode ── */
 html.dashboard-mode body{padding:6px;}
@@ -206,11 +254,11 @@ html.dashboard-mode .content-inner{padding:12px;}
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%;">
     <div style="display:flex;flex-direction:column;gap:4px;">
       <label style="font-size:10px;font-weight:700;color:#3b78a8;text-transform:uppercase;letter-spacing:.6px;">Start Month</label>
-      <input type="month" id="cfgStart" value="2026-01" style="padding:7px 10px;border:1.5px solid #3b78a8;border-radius:6px;font-size:13px;font-family:inherit;color:#222;">
+      <input type="month" id="cfgStart" style="padding:7px 10px;border:1.5px solid #3b78a8;border-radius:6px;font-size:13px;font-family:inherit;color:#222;">
     </div>
     <div style="display:flex;flex-direction:column;gap:4px;">
       <label style="font-size:10px;font-weight:700;color:#3b78a8;text-transform:uppercase;letter-spacing:.6px;">End Month</label>
-      <input type="month" id="cfgEnd" value="2026-12" style="padding:7px 10px;border:1.5px solid #3b78a8;border-radius:6px;font-size:13px;font-family:inherit;color:#222;">
+      <input type="month" id="cfgEnd" style="padding:7px 10px;border:1.5px solid #3b78a8;border-radius:6px;font-size:13px;font-family:inherit;color:#222;">
     </div>
     <div style="margin-top:18px;">
       <button class="btn btn-primary" onclick="runPipeline()" id="runBtn" style="padding:9px 22px;font-size:13px;background:#3b78a8;">&#9654; Run DQA Pipeline</button>
@@ -281,6 +329,7 @@ html.dashboard-mode .content-inner{padding:12px;}
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px;padding-top:16px;border-top:2px solid #e0e0e0;">
       <button class="btn btn-success btn-lg" onclick="exportExcel()">&#8595; Excel Report</button>
       <button class="btn btn-warning btn-lg" onclick="exportPriorityCSV()">&#9650; Priority CSV</button>
+      <button class="btn btn-primary btn-lg" onclick="downloadDQAHtml()">&#11015; Download DQA Report (.html)</button>
     </div>
   </div>
 </div>
@@ -386,8 +435,23 @@ async function api(path){
   const AUTH='Basic bXVzYS1zaWxsYWhrYW51Ok5hdmlnYXRvci8yMDI0IQ==';
   const fullUrl=BASE_URL+'/api'+path;
   const pUrl=PROXY+'?url='+encodeURIComponent(fullUrl)+'&Authorization='+encodeURIComponent(AUTH);
-  const r=await fetch(pUrl);
-  if(!r.ok)throw new Error('API '+r.status+': '+path.slice(0,80));
+  let r;
+  try{
+    r=await fetch(pUrl,{method:'GET',mode:'cors'});
+  }catch(netErr){
+    // Retry once after 1s (handles transient proxy cold-start)
+    await new Promise(res=>setTimeout(res,1000));
+    try{
+      r=await fetch(pUrl,{method:'GET',mode:'cors'});
+    }catch(e){
+      throw new Error('Network error — proxy unreachable. Check internet connection. Detail: '+e.message);
+    }
+  }
+  if(!r.ok){
+    let detail='';
+    try{const t=await r.text();detail=t.slice(0,120);}catch(_){}
+    throw new Error('DHIS2 API error '+r.status+' on '+path.slice(0,60)+(detail?' — '+detail:''));
+  }
   return r.json();
 }
 
@@ -454,10 +518,48 @@ async function loadAll(){
       const dist=dA?dA.name:'Unknown', chi=cA?cA.name:'', prov=DIST_TO_PROV[dist]||dist;
       const type=getFacType(ou.name);
       if(!ASSESSED_TYPES.includes(type))return;
-      fullOUMap[ou.id]={name:ou.name,district:dist,chiefdom:chi,province:prov,type};
-      allFacMeta[ou.name]={district:dist,chiefdom:chi,province:prov,type,hasData:false};
+      fullOUMap[ou.id]={id:ou.id,name:ou.name,district:dist,chiefdom:chi,province:prov,type};
+      // Key allFacMeta by unique UID — never drop a facility silently.
+      // Display key = name + UID suffix only when a duplicate name exists (resolved later).
+      allFacMeta[ou.id]={id:ou.id,name:ou.name,district:dist,chiefdom:chi,province:prov,type,hasData:false};
     });
+
+    // ── Resolve duplicate names ──
+    // Build name → [uid, ...] map to detect duplicates
+    const nameToUids={};
+    Object.values(fullOUMap).forEach(ou=>{
+      if(!nameToUids[ou.name])nameToUids[ou.name]=[];
+      nameToUids[ou.name].push(ou.id);
+    });
+    // For duplicate names append chiefdom to make display name unique
+    window.facDisplayName={};  // uid -> display name used everywhere in UI
+    window.facNameToUids={};   // raw name -> [uid, ...] for analytics row lookup
+    Object.values(fullOUMap).forEach(ou=>{
+      const uids=nameToUids[ou.name];
+      const isDup=uids.length>1;
+      const dispName=isDup?ou.name+' ('+ou.chiefdom+')':ou.name;
+      facDisplayName[ou.id]=dispName;
+      // Store mapping from raw analytics name to uid(s)
+      if(!facNameToUids[ou.name])facNameToUids[ou.name]=[];
+      facNameToUids[ou.name].push(ou.id);
+      // Update allFacMeta display name
+      allFacMeta[ou.id].displayName=dispName;
+    });
+    // Also build uid-keyed reverse: analytics rows come back with OU name from DHIS2
+    // We match row.facility (name) -> uid -> allFacMeta entry
+    window.facNameToFirstUid={};
+    Object.keys(facNameToUids).forEach(name=>{
+      facNameToUids[name].forEach(uid=>{ facNameToFirstUid[uid]=uid; });
+    });
+
     const totalFacs=Object.keys(fullOUMap).length;
+    const dupCount=Object.values(nameToUids).filter(v=>v.length>1).reduce((s,v)=>s+v.length,0);
+    if(dupCount>0)console.warn('DQA: '+dupCount+' facilities share non-unique names — chiefdom appended to disambiguate.');
+    // Build displayName -> meta for HF Browser (allFacMeta is uid-keyed)
+    window.facMetaByDisplayName={};
+    Object.values(allFacMeta).forEach(meta=>{
+      window.facMetaByDisplayName[meta.displayName||meta.name]=meta;
+    });
     document.getElementById('metaFacs').textContent=totalFacs+' facilities';
     _setStep('s1','done',totalFacs+' level-5 OUs · '+[...new Set(Object.values(fullOUMap).map(o=>o.district))].length+' districts');
     setBar(20);
@@ -481,7 +583,7 @@ async function loadAll(){
       await new Promise(r=>setTimeout(r,80));
     }
     rawData=transform(allRows);
-    rawData.forEach(row=>{if(allFacMeta[row.facility])allFacMeta[row.facility].hasData=true;});
+    rawData.forEach(row=>{if(row.ouId&&allFacMeta[row.ouId])allFacMeta[row.ouId].hasData=true;});
     document.getElementById('metaRecords').textContent=rawData.length.toLocaleString()+' records';
     _setStep('s3','done',allRows.length+' analytics rows → '+rawData.length+' facility-period records');
     setBar(65);
@@ -527,7 +629,8 @@ function transform(analyticsRows){
   Object.values(byKey).forEach(rec=>{
     const ou=fullOUMap[rec.ouId];if(!ou)return;
     const pe=rec.pe,year=pe.substring(0,4),moIdx=parseInt(pe.substring(4,6))-1,month=MONTH_NAMES[moIdx]||pe,period=year+'-'+pe.substring(4,6);
-    const flat={facility:ou.name,district:ou.district,chiefdom:ou.chiefdom,province:ou.province,type:ou.type,year,month,period};
+    const dispName=(window.facDisplayName&&window.facDisplayName[rec.ouId])||ou.name;
+    const flat={ouId:rec.ouId,facility:dispName,district:ou.district,chiefdom:ou.chiefdom,province:ou.province,type:ou.type,year,month,period};
     ALL_VAR_KEYS.forEach(k=>{flat[k]=rec[k]||0;});rows.push(flat);
   });
   return rows.sort((a,b)=>a.facility.localeCompare(b.facility)||a.period.localeCompare(b.period));
@@ -674,23 +777,33 @@ function runIndicatorChecks(){
 
 function runReportingAnalysis(){
   const repVars=ALL_VAR_KEYS.filter(k=>hasCfg(k));if(!repVars.length)return;
-  // Expected = number of months from periodStart to current month (inclusive)
-  const periods=getPeriods(CFG.instance.periodStart||'202501');
-  const expected=periods.length;
+  // Use the selected date range from the UI inputs
+  const _rStart=(document.getElementById('cfgStart')||{}).value?.replace('-','')||'';
+  const _rEnd=(document.getElementById('cfgEnd')||{}).value?.replace('-','')||_rStart;
+  if(!_rStart){return;} // no date selected yet
+  const periods=getPeriods(_rStart,_rEnd);
+  const expected=periods.length||1;
   const numYears=new Set(periods.map(p=>p.substring(0,4))).size;
   // Facilities with data
+  // Key by ouId (uid) — row.ouId set by transform()
   const facReported={};
-  rawData.forEach(row=>{const fac=row.facility;if(!fac)return;if(!facReported[fac])facReported[fac]=0;if(repVars.some(k=>row[k]>0))facReported[fac]++;});
-  const nonRep=[],repList=[];
-  Object.entries(allFacMeta).forEach(([fac,meta])=>{
-    const reported=facReported[fac]||0;
-    if(reported===0){nonRep.push({facility:fac,admin:{district:meta.district,chiefdom:meta.chiefdom},type:meta.type,status:'No Data'});}
-    else{repList.push({facility:fac,reported,expected,rate:Math.min((reported/expected*100),100).toFixed(2),admin:{district:meta.district,chiefdom:meta.chiefdom}});}
+  rawData.forEach(row=>{
+    const uid=row.ouId; if(!uid)return;
+    if(!facReported[uid])facReported[uid]=0;
+    if(repVars.some(k=>row[k]>0))facReported[uid]++;
   });
-  dqaResults.nonReporting=nonRep;repList.sort((a,b)=>parseFloat(a.rate)-parseFloat(b.rate));
+  const nonRep=[],repList=[];
+  Object.entries(allFacMeta).forEach(([uid,meta])=>{
+    const reported=facReported[uid]||0;
+    const dispName=meta.displayName||meta.name;
+    if(reported===0){nonRep.push({facility:dispName,admin:{district:meta.district,chiefdom:meta.chiefdom},type:meta.type,status:'No Data'});}
+    else{repList.push({facility:dispName,reported,expected,rate:Math.min((reported/expected*100),100).toFixed(2),admin:{district:meta.district,chiefdom:meta.chiefdom},type:meta.type});}
+  });
+  dqaResults.nonReporting=nonRep;
+  repList.sort((a,b)=>parseFloat(a.rate)-parseFloat(b.rate));
   const facRates={};repList.forEach(r=>{facRates[r.facility]={rate:r.rate};});
   const avgRate=repList.length>0?(repList.reduce((s,r)=>s+parseFloat(r.rate),0)/repList.length).toFixed(2):0;
-  dqaResults.reporting={avgRate,numYears,expected,detailedRates:repList,facRates,totalFacilities:Object.keys(allFacMeta).length,reportingCount:repList.length,nonRepCount:nonRep.length};
+  dqaResults.reporting={avgRate,numYears,expected,detailedRates:repList,facRates,totalFacilities:Object.keys(fullOUMap).length,reportingCount:repList.length,nonRepCount:nonRep.length};
 }
 
 function runOutlierDetection(){
@@ -729,8 +842,9 @@ function calculateRankings(){
   const facRatesMap=dqaResults.reporting?.facRates||{};
   // Build score from facilities with data
   const facData={};
-  Object.entries(allFacMeta).forEach(([fac,meta])=>{
-    facData[fac]={cohTotal:0,cohPassed:0,indTotal:0,indIssues:0,outTotal:0,outCount:0,repRate:parseFloat(facRatesMap[fac]?.rate||0),admin:{district:meta.district,chiefdom:meta.chiefdom},type:meta.type,hasData:meta.hasData};
+  Object.entries(allFacMeta).forEach(([uid,meta])=>{
+    const dispName=meta.displayName||meta.name;
+    facData[dispName]={uid,cohTotal:0,cohPassed:0,indTotal:0,indIssues:0,outTotal:0,outCount:0,repRate:parseFloat(facRatesMap[dispName]?.rate||0),admin:{district:meta.district,chiefdom:meta.chiefdom},type:meta.type,hasData:meta.hasData};
   });
   Object.values(dqaResults.coherency).forEach(c=>{rawData.forEach(row=>{const fac=row.facility;if(fac&&facData[fac]){const lv=resolveVal(row,c.xK),rv=resolveVal(row,c.yK);if((lv>0||rv>0)){facData[fac].cohTotal++;const ok=(c.direction&&c.direction==='<=')?lv<=rv:lv>=rv;if(ok)facData[fac].cohPassed++;}}});});
   const nF=Math.max(Object.keys(facData).length,1);
@@ -775,8 +889,8 @@ function displayRankingResults(){
   // Use the actual selected period range, not the hardcoded periodStart
   const periods=dqaResults.reporting?.detailedRates?.length
     ? getPeriods(
-        (document.getElementById('cfgStart')||{}).value?.replace('-','')||'202601',
-        (document.getElementById('cfgEnd')||{}).value?.replace('-','')||'202612'
+        (document.getElementById('cfgStart')||{}).value?.replace('-','')||'',
+        (document.getElementById('cfgEnd')||{}).value?.replace('-','')||''
       )
     : [];
   const expected=periods.length||dqaResults.reporting?.expected||1;
@@ -1274,8 +1388,9 @@ function bRunChecks(){
   // Only include keys that are actually configured
   INC_GROUPS.forEach(g=>{ g.configuredKeys=g.keys.filter(k=>hasCfg(k)); });
 
-  Object.entries(allFacMeta).forEach(([fac,meta])=>{
+  Object.entries(allFacMeta).forEach(([uid,meta])=>{
     if(!meta.hasData)return;
+    const fac=meta.displayName||meta.name;
     const base={province:meta.province,district:meta.district,chiefdom:meta.chiefdom,facility:fac,type:meta.type};
     bAllPeriods.forEach(period=>{
       const yr=period.substring(0,4);
@@ -1303,7 +1418,9 @@ function bRunChecks(){
 function bBuildHierarchy(){
   // Build hierarchy from FULL OU map — includes all facilities
   Object.values(fullOUMap).forEach(ou=>{
-    const prov=ou.province,dist=ou.district,chi=ou.chiefdom,name=ou.name;
+    const prov=ou.province,dist=ou.district,chi=ou.chiefdom;
+    // Use disambiguated display name so duplicate-named facilities appear separately
+    const name=(window.facDisplayName&&window.facDisplayName[ou.id])||ou.name;
     if(!bHierarchy[prov])bHierarchy[prov]={};
     if(!bHierarchy[prov][dist])bHierarchy[prov][dist]={};
     if(!bHierarchy[prov][dist][chi])bHierarchy[prov][dist][chi]=[];
@@ -1332,7 +1449,7 @@ function bShowProvinces(){
   let html='<div class="sec-hdr"><span class="sec-icon">P</span><span class="sec-title">SELECT PROVINCE / AREA</span></div><div class="nav-cards">';
   provs.forEach(prov=>{
     const dists=Object.keys(bHierarchy[prov]);let totChi=0,totFac=0,totData=0;
-    dists.forEach(d=>{const chis=Object.keys(bHierarchy[prov][d]);totChi+=chis.length;chis.forEach(c=>{bHierarchy[prov][d][c].forEach(f=>{totFac++;if(allFacMeta[f]?.hasData)totData++;});});});
+    dists.forEach(d=>{const chis=Object.keys(bHierarchy[prov][d]);totChi+=chis.length;chis.forEach(c=>{bHierarchy[prov][d][c].forEach(f=>{totFac++;if((window.facMetaByDisplayName||{})[f]?.hasData)totData++;});});});
     const issues=bIssueCount(r=>r.province===prov);
     html+=`<div class="nav-card lv-region" onclick="bShowDistricts('${esc(prov)}')"><div class="nc-title">${prov}</div><div class="nc-sub">Province / Area</div><div class="nc-counts"><div class="nc-cnt"><span class="nc-cnt-v">${dists.length}</span><span class="nc-cnt-l">Districts</span></div><div class="nc-cnt"><span class="nc-cnt-v">${totChi}</span><span class="nc-cnt-l">Chiefdoms</span></div><div class="nc-cnt"><span class="nc-cnt-v">${totFac}</span><span class="nc-cnt-l">Facilities</span></div><div class="nc-cnt"><span class="nc-cnt-v" style="color:#28a745;">${totData}</span><span class="nc-cnt-l">With Data</span></div></div>${bIssueBadge(issues,totData>0)}<div class="nc-hint">Click to view districts</div></div>`;
   });
@@ -1344,7 +1461,7 @@ function bShowDistricts(prov){
   const dists=Object.keys(bHierarchy[prov]||{}).sort();
   let html=`<button class="back-btn" onclick="bShowProvinces()">← Back</button><div class="sec-hdr"><span class="sec-icon">D</span><span class="sec-title">DISTRICTS — ${prov}</span></div><div class="nav-cards">`;
   dists.forEach(dist=>{
-    const chis=Object.keys(bHierarchy[prov][dist]);let totFac=0,totData=0;chis.forEach(c=>{bHierarchy[prov][dist][c].forEach(f=>{totFac++;if(allFacMeta[f]?.hasData)totData++;});});
+    const chis=Object.keys(bHierarchy[prov][dist]);let totFac=0,totData=0;chis.forEach(c=>{bHierarchy[prov][dist][c].forEach(f=>{totFac++;if((window.facMetaByDisplayName||{})[f]?.hasData)totData++;});});
     const issues=bIssueCount(r=>r.district===dist);
     html+=`<div class="nav-card lv-district" onclick="bShowChiefdoms('${esc(dist)}')"><div class="nc-title">${dist}</div><div class="nc-sub">District</div><div class="nc-counts"><div class="nc-cnt"><span class="nc-cnt-v">${chis.length}</span><span class="nc-cnt-l">Chiefdoms</span></div><div class="nc-cnt"><span class="nc-cnt-v">${totFac}</span><span class="nc-cnt-l">Facilities</span></div><div class="nc-cnt"><span class="nc-cnt-v" style="color:#28a745;">${totData}</span><span class="nc-cnt-l">With Data</span></div></div>${bIssueBadge(issues,totData>0)}<div class="nc-hint">Click to view chiefdoms</div></div>`;
   });
@@ -1356,7 +1473,7 @@ function bShowChiefdoms(dist){
   const prov=bCurProv,chis=Object.keys((bHierarchy[prov]||{})[dist]||{}).sort();
   let html=`<button class="back-btn" onclick="bShowDistricts('${esc(prov)}')">← Back</button><div class="sec-hdr"><span class="sec-icon">C</span><span class="sec-title">CHIEFDOMS — ${dist}</span></div><div class="nav-cards">`;
   chis.forEach(chi=>{
-    const facs=bHierarchy[prov][dist][chi]||[];let totData=0;facs.forEach(f=>{if(allFacMeta[f]?.hasData)totData++;});
+    const facs=bHierarchy[prov][dist][chi]||[];let totData=0;facs.forEach(f=>{if((window.facMetaByDisplayName||{})[f]?.hasData)totData++;});
     const issues=bIssueCount(r=>r.chiefdom===chi);
     html+=`<div class="nav-card lv-chiefdom" onclick="bShowFacilities('${esc(chi)}')"><div class="nc-title">${chi||'(No Chiefdom)'}</div><div class="nc-sub">Chiefdom</div><div class="nc-counts"><div class="nc-cnt"><span class="nc-cnt-v">${facs.length}</span><span class="nc-cnt-l">Facilities</span></div><div class="nc-cnt"><span class="nc-cnt-v" style="color:#28a745;">${totData}</span><span class="nc-cnt-l">With Data</span></div></div>${bIssueBadge(issues,totData>0)}<div class="nc-hint">Click to view health facilities</div></div>`;
   });
@@ -1369,7 +1486,10 @@ function bShowFacilities(chi){
   const pillMap={Hospital:'pill-hospital',Clinic:'pill-clinic',CHC:'pill-chc',CHP:'pill-chp',MCHP:'pill-mchp',Other:'pill-other'};
   let html=`<button class="back-btn" onclick="bShowChiefdoms('${esc(dist)}')">← Back</button><div class="sec-hdr"><span class="sec-icon">H</span><span class="sec-title">HEALTH FACILITIES — ${chi} (${facs.length})</span></div><div class="nav-cards">`;
   facs.forEach(fac=>{
-    const meta=allFacMeta[fac]||{type:'Other',hasData:false};const pc=pillMap[meta.type]||'pill-other';
+    // allFacMeta is uid-keyed; fac is the display name — use facMetaByDisplayName
+  const meta=(window.facMetaByDisplayName&&window.facMetaByDisplayName[fac])
+    || Object.values(allFacMeta).find(m=>(m.displayName||m.name)===fac)
+    || {type:'Other',hasData:false};const pc=pillMap[meta.type]||'pill-other';
     const hasData=meta.hasData;const issues=hasData?bIssueCount(r=>r.facility===fac):0;
     const rankEntry=dqaResults.rankings.find(r=>r.facility===fac);const score=rankEntry&&hasData?parseFloat(rankEntry.total):null;
     const scoreColor=score===null?'#888':score>=95?'#28a745':score>=75?'#17a2b8':score>=50?'#b8700a':'#dc3545';
@@ -1400,7 +1520,7 @@ function bShowFacilities(chi){
 
 function bShowDashboard(fac){
   bCurFac=fac;bBreadcrumb();
-  const meta=allFacMeta[fac]||{type:'Other',hasData:false};
+  const meta=(window.facMetaByDisplayName||{})[fac]||{type:'Other',hasData:false};
   const pillMap={Hospital:'pill-hospital',Clinic:'pill-clinic',CHC:'pill-chc',CHP:'pill-chp',MCHP:'pill-mchp',Other:'pill-other'},pc=pillMap[meta.type]||'pill-other';
   const hasData=meta.hasData;
   const facRows=bRows.filter(r=>r.facility===fac).sort((a,b)=>a.period.localeCompare(b.period));
@@ -1645,6 +1765,89 @@ window.addEventListener('load',()=>{
   document.getElementById('pipelineStatus').style.background='rgba(59,120,168,.5)';
   document.getElementById('pipelineStatus').style.color='#fff';
 });
+
+function downloadDQAHtml(){
+  const start=(document.getElementById('cfgStart')||{}).value||'';
+  const end=(document.getElementById('cfgEnd')||{}).value||'';
+  const fname='DQA_NMCP_'+start+'_'+end+'.html';
+
+  // Serialise all state that must survive in the downloaded file
+  const STATE={
+    start, end,
+    rawData,
+    dqaResults,
+    fullOUMap,
+    allFacMeta,
+    ALL_VAR_KEYS,
+    VAR_LABELS,
+    MAP,
+    UID_TO_KEY,
+    bRows,
+    bHierarchy,
+    bCohIssues,
+    bWrIssues,
+    bOutIssues,
+    bIncIssues,
+    bAllPeriods,
+    facRowLookup,
+  };
+
+  // Build a bootstrap <script> that will run on open, restore all state, and re-render
+  const bootstrap=`<script id="__dqa_bootstrap__">
+(function(){
+  const S=${JSON.stringify(STATE)};
+  window.addEventListener('load',function(){
+    // Restore inputs
+    const cs=document.getElementById('cfgStart');
+    const ce=document.getElementById('cfgEnd');
+    if(cs)cs.value=S.start;
+    if(ce)ce.value=S.end;
+
+    // Restore all module-level state
+    rawData=S.rawData;
+    dqaResults=S.dqaResults;
+    fullOUMap=S.fullOUMap;
+    allFacMeta=S.allFacMeta;
+    ALL_VAR_KEYS=S.ALL_VAR_KEYS;
+    VAR_LABELS=S.VAR_LABELS;
+    MAP=S.MAP;
+    UID_TO_KEY=S.UID_TO_KEY;
+    bRows=S.bRows;
+    bHierarchy=S.bHierarchy;
+    bCohIssues=S.bCohIssues;
+    bWrIssues=S.bWrIssues;
+    bOutIssues=S.bOutIssues;
+    bIncIssues=S.bIncIssues;
+    bAllPeriods=S.bAllPeriods;
+    facRowLookup=S.facRowLookup;
+    bBrowserReady=true;
+
+    // Re-render all results
+    try{
+      displayResults();
+      document.getElementById('s-results').classList.remove('hidden');
+      document.getElementById('pipelinePanel').style.display='none';
+      document.getElementById('pipelineStatus').textContent='Loaded from saved report · '+S.start+' → '+S.end;
+      document.getElementById('pipelineStatus').style.display='inline-block';
+      document.getElementById('pipelineStatus').style.background='rgba(40,167,69,.6)';
+    }catch(e){console.error('DQA restore error:',e);}
+  });
+})();
+<\/script>`;
+
+  // Get the current HTML and inject the bootstrap script just before </body>
+  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML
+    .replace(/<script id="__dqa_bootstrap__"[\s\S]*?<\/script>/,'')  // remove old bootstrap if re-saving
+    .replace('</body>',bootstrap+'</body>');
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
 </script>
 </body>
 </html>
